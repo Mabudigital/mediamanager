@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Notification extends Model
+class PushNotification extends Model
 {
     use HasFactory,SoftDeletes;
 
-    protected $table = 'notifications';
+    protected $table = 'push_notifications';
     protected $guarded = ['id'];
 
     /**
@@ -24,8 +24,7 @@ class Notification extends Model
         'content',
         'image',
         'date',
-        'internalLink',
-        'externalLink',
+        'sent',
         'webLink',
         'appLink',
         'android',
@@ -34,6 +33,7 @@ class Notification extends Model
         'chromeweb',
         'firefox',
         'safari',
+        'notification_id',
     ];
 
     /**
@@ -50,6 +50,6 @@ class Notification extends Model
         'chromeweb' => 'boolean',
         'firefox' => 'boolean',
         'safari' => 'boolean',
-        //'date' => 'datetime',
+        'date' => 'datetime:Y-m-d H:00',
     ];
 }

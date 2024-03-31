@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Models\Programming;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\ProgrammingResource\Pages;
@@ -34,11 +35,13 @@ class ProgrammingResource extends Resource
                 Forms\Components\TextInput::make('host')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\FileUpload::make('image')
-                    ->image()
-                    ->directory('uploads/programming')
-                    ->preserveFilenames(),
-                   
+                    Forms\Components\ViewField::make('image')
+                    ->id('image_1')
+                    ->hidden(fn(string $operation) => $operation === "view")
+                    ->view('filament.forms.components.lfm-button')
+                    ->extraAttributes(['type' => 'image', 'directory' => '/programming' ]),
+                    Forms\Components\ViewField::make('image')->visible(fn(string $operation) => $operation === "view")->view('filament.forms.components.file-preview')->extraAttributes(['type' => 'image' ]),
+
                     Flatpickr::make('time_start')->time()->use24hr(false),
                     Flatpickr::make('time_end')->time()->use24hr(false),
                 Forms\Components\Select::make('day')
@@ -99,7 +102,11 @@ class ProgrammingResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ])->recordUrl(
+                fn (Model $record): string => ProgrammingResource::getUrl('view', ['record' => $record]),
+            )
+            ->striped()
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
@@ -125,6 +132,7 @@ class ProgrammingResource extends Resource
         return [
             'index' => Pages\ListProgrammings::route('/'),
             'create' => Pages\CreateProgramming::route('/create'),
+            'view' => Pages\ViewProgramming::route('/{record}'),
             'edit' => Pages\EditProgramming::route('/{record}/edit'),
         ];
     }

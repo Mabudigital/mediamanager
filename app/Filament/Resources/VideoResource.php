@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\VideoResource\Pages;
-use App\Filament\Resources\VideoResource\RelationManagers;
-use App\Models\Video;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Video;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\VideoResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\VideoResource\RelationManagers;
 
 class VideoResource extends Resource
 {
@@ -39,9 +40,17 @@ class VideoResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('date')
                     ->maxLength(255),
-                Forms\Components\TextInput::make('url')
-                    ->required()
-                    ->maxLength(255),
+                    Forms\Components\ViewField::make('url')
+                    ->label('video')
+                    ->visible(fn(string $operation) => $operation === "view")
+                    ->view('filament.forms.components.file-preview')
+                    ->extraAttributes(['type' => 'video' ]),
+                    Forms\Components\ViewField::make('url')
+                    ->label('video')
+                        ->id('video_1')
+                        ->hidden(fn(string $operation) => $operation === "view")
+                        ->view('filament.forms.components.lfm-button')
+                        ->extraAttributes(['type' => 'audio', 'directory' => '/videos' ]),
                 ])->Columns([
                     'sm' => 1,
                     'lg'=>2
@@ -79,7 +88,11 @@ class VideoResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ])->recordUrl(
+                fn (Model $record): string => VideoResource::getUrl('view', ['record' => $record]),
+            )
+            ->striped()
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
@@ -105,6 +118,7 @@ class VideoResource extends Resource
         return [
             'index' => Pages\ListVideos::route('/'),
             'create' => Pages\CreateVideo::route('/create'),
+            'view' => Pages\ViewVideo::route('/{record}'),
             'edit' => Pages\EditVideo::route('/{record}/edit'),
         ];
     }

@@ -14,7 +14,7 @@
                 display: none !important;
             }
         </style>
- 
+        @livewire('database-notifications')
         @filamentStyles
         @vite('resources/css/app.css')
     </head>

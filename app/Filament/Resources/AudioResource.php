@@ -10,6 +10,8 @@ use App\Models\Playlist;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\AudioResource\Pages;
@@ -29,49 +31,58 @@ class AudioResource extends Resource
 
 
     public static function form(Form $form): Form
-    {   
-       
+    {
+        
         return $form
-        ->schema([
-            Forms\Components\Section::make()
             ->schema([
-                Forms\Components\Select::make('playlist_id')
-                ->relationship(name: 'playlist', titleAttribute: 'title')
-                ->live()
-                
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $playlist =  Playlist::find($state);
-                    $set('artist',$playlist->host);
-                }),
-                Forms\Components\TextInput::make('title')
-                    ->required()
-                    ->maxLength(255)
-                    ->live(),
-                Forms\Components\ViewField::make('image')->id('image_1')->view('filament.forms.components.lfm-button')->extraAttributes(['type' => 'image','directory'=>'audios']),    
-                Forms\Components\TextInput::make('description')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('program')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('event')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('artist'),
-                Forms\Components\DatePicker::make('date'),
-               Forms\Components\TextInput::make('url')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('featured')
-                    ->required(),
-                Forms\Components\TextInput::make('notificationTitle')
-                    ->default('¡NUEVO PODCAST DISPONIBLE!')
-                    ->hint('Solo llene si desea cambiar este mensaje.')
-                    ->maxLength(50),
-                Forms\Components\Textarea::make('notificationContent')
-                    ->hint('Si se deja vacío se mostrara como: Escucha {{$title}} - {{$thisplaylist}} de {{$artist}} en Redentor. Solo llene si desea cambiar este mensaje.')
-                    ->maxLength(250),
-            ])->Columns([
-                'sm' => 1,
-                'lg' => 2
-            ])
+                Forms\Components\Section::make()
+                    ->schema([
+                        Forms\Components\Select::make('playlist_id')
+                            ->relationship(name: 'playlist', titleAttribute: 'title')
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                $playlist =  Playlist::find($state);
+                                $set('artist', $playlist->host);
+                               
+                            }),
+                        Forms\Components\TextInput::make('title')
+                            ->required()
+                            ->maxLength(255)
+                            ->live(),
+                            Forms\Components\ViewField::make('image')
+                            ->id('image_1')
+                            ->hidden(fn(string $operation) => $operation === "view")
+                            ->view('filament.forms.components.lfm-button')
+                            ->extraAttributes(['type' => 'image', 'directory' => '/audios-images' ]),
+                            Forms\Components\ViewField::make('image')->visible(fn(string $operation) => $operation === "view")->view('filament.forms.components.file-preview')->extraAttributes(['type' => 'image' ]),
+                        Forms\Components\TextInput::make('description')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('program')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('event')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('artist'),
+                        Forms\Components\DatePicker::make('date'),
+                        Forms\Components\ViewField::make('url')->label('audio')->visible(fn(string $operation) => $operation === "view")->view('filament.forms.components.file-preview')->extraAttributes(['type' => 'audio' ]),
+                        Forms\Components\ViewField::make('url')
+                        ->label('Audio')
+                            ->id('audio_1')
+                            ->hidden(fn(string $operation) => $operation === "view")
+                            ->view('filament.forms.components.lfm-button')
+                            ->extraAttributes(['type' => 'audio', 'directory' => '/audios' ]),
+                        Forms\Components\Toggle::make('featured')
+                            ->required(),
+                        Forms\Components\TextInput::make('notification_title')
+                            ->default('¡NUEVO PODCAST DISPONIBLE!')
+                            ->helperText('Solo llene si desea cambiar este mensaje.')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('notification_content')
+                            ->helperText('Si se deja vacío se mostrara como: Escucha {título} en el podcast {playlist} de {host} en Redentor. Solo llene si desea cambiar este mensaje.')
+                            ->maxLength(250),
+                    ])->Columns([
+                        'sm' => 1,
+                        'lg' => 2
+                    ])
             ]);
     }
 
@@ -84,15 +95,15 @@ class AudioResource extends Resource
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('artist')
-                ->sortable()
-                ->searchable(),
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('date')
-                ->sortable()
-                ->searchable(),
-               /* Tables\Columns\TextColumn::make('url')->searchable(),*/
+                    ->sortable()
+                    ->searchable(),
+                /* Tables\Columns\TextColumn::make('url')->searchable(),*/
                 Tables\Columns\IconColumn::make('featured')
                     ->boolean(),
-               // Tables\Columns\TextColumn::make('notificationContent')->searchable(),
+                // Tables\Columns\TextColumn::make('notificationContent')->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -101,14 +112,17 @@ class AudioResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->defaultSort('created_at','desc')
+            ])->recordUrl(
+                fn (Model $record): string => AudioResource::getUrl('view', ['record' => $record]),
+            )
+            ->striped()
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\Filter::make('is_featured')->query(fn (Builder $query): Builder => $query->where('featured', true)),
                 Tables\Filters\SelectFilter::make('playlist')
-                ->relationship(name: 'playlist', titleAttribute: 'title')
-                ->preload()
-                ->multiple(),
+                    ->relationship(name: 'playlist', titleAttribute: 'title')
+                    ->preload()
+                    ->multiple(),
                 Tables\Filters\Filter::make('Added at')
                     ->form([
                         DatePicker::make('from'),
@@ -117,17 +131,23 @@ class AudioResource extends Resource
                         return $query
                             ->when(
                                 $data['from'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('date', '>=', $date),
-                        )
-                        ->when(
-                            $data['until'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
-                        );
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
+                            );
                     }),
                 Tables\Filters\TrashedFilter::make(),
             ])->filtersFormColumns(4)
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Action::make('Send Notificaion')
+                ->icon('heroicon-o-bell-alert')
+                ->requiresConfirmation()
+                ->url(fn (Model $record): string => route('sendPodcastNotification', ['id' => $record->id])),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -137,7 +157,7 @@ class AudioResource extends Resource
                 ]),
             ]);
     }
-    
+
 
     public static function getRelations(): array
     {
@@ -151,6 +171,7 @@ class AudioResource extends Resource
         return [
             'index' => Pages\ListAudio::route('/'),
             'create' => Pages\CreateAudio::route('/create'),
+            'view' => Pages\ViewAudio::route('/{record}'),
             'edit' => Pages\EditAudio::route('/{record}/edit'),
         ];
     }

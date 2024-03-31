@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PlaylistResource\Pages;
-use App\Filament\Resources\PlaylistResource\RelationManagers;
-use App\Models\Playlist;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Playlist;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\PlaylistResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\PlaylistResource\RelationManagers;
 
 class PlaylistResource extends Resource
 {
@@ -31,7 +32,12 @@ class PlaylistResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description')
                     ->columnSpanFull(),
-                    Forms\Components\ViewField::make('image')->id('image_1')->view('filament.forms.components.lfm-button')->extraAttributes(['type' => 'image','directory'=>'playlists']),   
+                    Forms\Components\ViewField::make('image')
+                    ->id('image_1')
+                    ->hidden(fn(string $operation) => $operation === "view")
+                    ->view('filament.forms.components.lfm-button')
+                    ->extraAttributes(['type' => 'image', 'directory' => '/playlists' ]),
+                    Forms\Components\ViewField::make('image')->visible(fn(string $operation) => $operation === "view")->view('filament.forms.components.file-preview')->extraAttributes(['type' => 'image' ]),
                 Forms\Components\TextInput::make('host')
                     ->required()
                     ->maxLength(255),
@@ -48,7 +54,7 @@ class PlaylistResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image'),
+                    Tables\Columns\ViewColumn::make('image')->view('filament.columns.image-video-toggle'),
                 Tables\Columns\TextColumn::make('host')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -63,12 +69,18 @@ class PlaylistResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ])->recordUrl(
+                fn (Model $record): string => PlaylistResource::getUrl('view', ['record' => $record]),
+            )
+            ->striped()
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -91,6 +103,7 @@ class PlaylistResource extends Resource
         return [
             'index' => Pages\ListPlaylists::route('/'),
             'create' => Pages\CreatePlaylist::route('/create'),
+            'view' => Pages\ViewPlaylist::route('/{record}'),
             'edit' => Pages\EditPlaylist::route('/{record}/edit'),
         ];
     }

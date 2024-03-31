@@ -8,6 +8,7 @@ use App\Models\Radio;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\RadioResource\Pages;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
@@ -27,27 +28,26 @@ class RadioResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make()
-                ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('streaming_url')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('alt_streaming_url')
-                     ->maxLength(255),
-                /*Forms\Components\FileUpload::make('image')
-                    ->image()
-                    ->directory('uploads/radios')
-                    ->preserveFilenames()
-                    ->required(),*/
-                    CuratorPicker::make('image')
-                    ->preserveFilenames()
-                    ->directory('uploads/radios')
-                ])->Columns([
-                    'sm'=> 1,
-                    'lg' => 2
-                ])
+                    ->schema([
+                        Forms\Components\TextInput::make('title')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('streaming_url')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('alt_streaming_url')
+                            ->maxLength(255),
+                        Forms\Components\ViewField::make('image')
+                        ->id('image_1')
+                        ->hidden(fn(string $operation) => $operation === "view")
+                        ->view('filament.forms.components.lfm-button')
+                        ->extraAttributes(['type' => 'image', 'directory' => '/radios' ]),
+                        Forms\Components\ViewField::make('image')->visible(fn(string $operation) => $operation === "view")->view('filament.forms.components.file-preview')->extraAttributes(['type' => 'image' ]),
+
+                    ])->Columns([
+                        'sm' => 1,
+                        'lg' => 2
+                    ])
             ]);
     }
 
@@ -61,8 +61,9 @@ class RadioResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('alt_streaming_url')
                     ->searchable(),
-                CuratorColumn::make('image')
-                ->size(100),
+                Tables\Columns\ImageColumn::make('image')
+                    ->size(100),
+                Tables\Columns\ViewColumn::make('image')->view('filament.columns.image-video-toggle'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -76,6 +77,10 @@ class RadioResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->recordUrl(
+                fn (Model $record): string => RadioResource::getUrl('view', ['record' => $record]),
+            )
+            ->striped()
             ->filters([
                 //
             ])
@@ -101,6 +106,7 @@ class RadioResource extends Resource
         return [
             'index' => Pages\ListRadios::route('/'),
             'create' => Pages\CreateRadio::route('/create'),
+            'view' => Pages\ViewRadio::route('/{record}'),
             'edit' => Pages\EditRadio::route('/{record}/edit'),
         ];
     }

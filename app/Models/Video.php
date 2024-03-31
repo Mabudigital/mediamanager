@@ -42,7 +42,7 @@ class Video extends Model
         return $this->belongsTo(\App\Models\Playlist::class);
     }
 
-    public function setUrlAttribute($value)
+   /* public function setUrlAttribute($value)
     {
         $attribute_name = "url";
         $disk = "uploads";
@@ -52,9 +52,9 @@ class Video extends Model
         $this->uploadFileToDisk($value, $attribute_name, $name, $disk, $destination_path);
 
     // return $this->attributes[{$attribute_name}]; // uncomment if this is a translatable field
-    }
+    }*/
 
-    public function setImageAttribute($value)
+   /*public function setImageAttribute($value)
     {
 
         $attribute_name = "image";
@@ -65,7 +65,7 @@ class Video extends Model
         $this->uploadFileToDisk($value, $attribute_name, $name, $disk, $destination_path);
 
     // return $this->attributes[{$attribute_name}]; // uncomment if this is a translatable field
-    }
+    }*/
 
    /* public function imagePreviewer(){
         return '<img src="'.url("/uploads/{$this->image}").'" style="height:240px;width:auto;" />';

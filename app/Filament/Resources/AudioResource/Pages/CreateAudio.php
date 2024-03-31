@@ -15,14 +15,17 @@ class CreateAudio extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 
-    protected function beforeSave(array $data): array
+
+    protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data = $this->getRecord();
+       // $data = $this->form->getState();
         $title = $data['title'];
         $artist = $data['artist'];
         $playlistId = $data['playlist_id'];
         $playlist = Playlist::find($playlistId);
-        $data['notificationContent'] = " Escucha {{$title}} - {{$playlist->title}} de {{$artist}} en Redentor. ";
+        if( $data['notification_content'] == ''){
+                  $data['notification_content'] = "Escucha {$title} en el podcast {$playlist->title} de {$artist} en Redentor. ";
+        }
         
         return $data;
     }

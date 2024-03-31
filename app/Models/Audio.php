@@ -26,6 +26,8 @@ class Audio extends Model
         'date',
         'url',
         'featured',
+        'notification_title',
+        'notification_content',
     ];
 
     /**
